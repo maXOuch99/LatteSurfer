@@ -4,36 +4,39 @@ using UnityEngine;
 public class WaveDeformer : MonoBehaviour
 {
     [Header("Wave Settings")]
-    public float amplitude = 0.2f; //height of the waves
-    public float wavelength = 2f;  //distance between wave peaks
-    public float speed = 1f; //how fast the waves move
-    public Vector2 direction = new Vector2(1f, 1f); //the X and Z direction
+    public float waveHeight = 0.5f;          //height of waves
+    public float waveFrequency = 1.0f;       //frequency of waves
+    public float waveSpeed = 1.0f;           //how fast waves move
+    public Vector2 waveDirection = new Vector2(1, 0); //XZ direction
 
     private Mesh mesh;
     private Vector3[] baseVertices;
-    private Vector3[] displacedVertices;
+    private Vector3[] deformedVertices;
 
     void Start()
     {
         mesh = GetComponent<MeshFilter>().mesh;
         baseVertices = mesh.vertices;
-        displacedVertices = new Vector3[baseVertices.Length];
-        direction.Normalize();
+        deformedVertices = new Vector3[baseVertices.Length];
     }
 
     void Update()
     {
-        float time = Time.time * speed;
+        float time = Time.time * waveSpeed;
 
         for (int i = 0; i < baseVertices.Length; i++)
         {
-            Vector3 vertex = baseVertices[i];
-            float wave = Mathf.Sin((vertex.x * direction.x + vertex.z * direction.y) / wavelength + time) * amplitude;
-            vertex.y = wave;
-            displacedVertices[i] = vertex;
+            Vector3 v = baseVertices[i];
+            float wave = Mathf.Sin(
+                (v.x * waveFrequency + time * waveDirection.x) +
+                (v.z * waveFrequency + time * waveDirection.y)
+            );
+
+            v.y = wave * waveHeight;
+            deformedVertices[i] = v;
         }
 
-        mesh.vertices = displacedVertices;
-        mesh.RecalculateNormals();
+        mesh.vertices = deformedVertices;
+        mesh.RecalculateNormals(); //ensures lighting reacts properly
     }
 }

@@ -28,14 +28,18 @@ public class SurferController : MonoBehaviour
     void FixedUpdate()
     {
         //input
-        Vector2 input = new Vector2(Input.GetAxis("Horizontal"), Input.GetAxis("Vertical"));
+        float steerInput = Input.GetAxis("Horizontal");   //steering input (A/D)
+        float forwardInput = Input.GetAxis("Vertical");   //forward acceleration (W/S)
 
-        //camera-relative movement direction
-        Vector3 camForward = Vector3.ProjectOnPlane(cameraTransform.forward, Vector3.up).normalized;
-        Vector3 camRight = Vector3.ProjectOnPlane(cameraTransform.right, Vector3.up).normalized;
+        //steering
+        if (Mathf.Abs(steerInput) > 0.01f)
+        {
+            float turnAmount = steerInput * turnSpeed * Time.fixedDeltaTime;
+            transform.Rotate(Vector3.up * turnAmount);    //rotate yaw only (steering)
+        }
 
-        //desired velocity
-        Vector3 desiredDir = (camForward * input.y + camRight * input.x).normalized;
+        //forward direction and speed
+        Vector3 desiredDir = transform.forward * Mathf.Clamp01(forwardInput);  //always move along facing direction
         float targetSpeed = desiredDir.magnitude > 0.01f ? maxSpeed : 0f;
         Vector3 targetVel = desiredDir * targetSpeed;
 
@@ -43,7 +47,7 @@ public class SurferController : MonoBehaviour
         float accel = desiredDir.magnitude > 0.01f ? acceleration : deceleration;
         currentVelocity = Vector3.MoveTowards(currentVelocity, targetVel, accel * Time.fixedDeltaTime);
 
-        //project movement onto surface
+        //project movement onto surface normal so player hugs waves
         Vector3 surfaceNormal = Vector3.up;
         if (Physics.Raycast(transform.position + Vector3.up * 0.1f, Vector3.down, out RaycastHit hit,
                             surfaceCheckDistance, surfaceMask, QueryTriggerInteraction.Ignore))
@@ -54,25 +58,13 @@ public class SurferController : MonoBehaviour
 
         //apply velocity to Rigidbody
         Vector3 newVel = currentVelocity;
-        newVel.y = rb.linearVelocity.y;   //preserve vertical motion
+        newVel.y = rb.linearVelocity.y;
         rb.linearVelocity = newVel;
 
-        //rotate player (yaw only)
-        if (currentVelocity.sqrMagnitude > 0.01f)
-        {
-            Vector3 moveDir = currentVelocity;
-            moveDir.y = 0f; // ignore vertical for rotation
-            if (moveDir.sqrMagnitude > 0.001f)
-            {
-                Quaternion targetRot = Quaternion.LookRotation(moveDir, Vector3.up); // yaw only
-                transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, turnSpeed * Time.fixedDeltaTime);
-            }
-        }
-
-        //visualRoot tilt (roll) only
+        //visualRoot lean (surf carve lean)
         if (visualRoot != null)
         {
-            float targetZ = -Input.GetAxis("Horizontal") * 25f;      // left/right tilt
+            float targetZ = -steerInput * 25f; // 💡 Lean based on steering, not input.x direction
             Vector3 angles = visualRoot.localEulerAngles;
             angles.z = Mathf.LerpAngle(angles.z, targetZ, Time.fixedDeltaTime * 6f);
             visualRoot.localEulerAngles = angles;
