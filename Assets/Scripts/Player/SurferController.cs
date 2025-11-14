@@ -69,5 +69,9 @@ public class SurferController : MonoBehaviour
             angles.z = Mathf.LerpAngle(angles.z, targetZ, Time.fixedDeltaTime * 6f);
             visualRoot.localEulerAngles = angles;
         }
+
+        //wave forward flow ---
+        Vector3 waveFlow = cameraTransform.forward * 0.5f;
+        rb.linearVelocity += waveFlow * Time.fixedDeltaTime;
     }
 }

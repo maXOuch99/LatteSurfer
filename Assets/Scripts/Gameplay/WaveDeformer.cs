@@ -35,8 +35,38 @@ public class WaveDeformer : MonoBehaviour
             v.y = wave * waveHeight;
             deformedVertices[i] = v;
         }
+        DepressWaveUnderPlayer();
+
+        mesh.vertices = deformedVertices;
+        mesh.RecalculateNormals();
 
         mesh.vertices = deformedVertices;
         mesh.RecalculateNormals(); //ensures lighting reacts properly
+    }
+
+    public Transform player;        // assign surfer/player
+    public float depressionRadius = 1.5f;
+    public float depressionStrength = 0.3f; // how much the board pushes wave down
+
+    void DepressWaveUnderPlayer()
+    {
+        if (player == null) return;
+        Vector3 playerPos = player.position;
+        
+        for (int i = 0; i < deformedVertices.Length; i++)
+        {
+            //world position of this vertex
+            Vector3 worldV = transform.TransformPoint(deformedVertices[i]);
+            float dist = Vector3.Distance(worldV, playerPos);
+
+            if (dist < depressionRadius)
+            {
+                // smooth effect, strong at center, fades outward
+                float falloff = 1f - (dist / depressionRadius);
+
+                // depress downward
+                deformedVertices[i].y -= depressionStrength * falloff;
+            }
+        }
     }
 }
